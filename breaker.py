@@ -27,16 +27,16 @@ class subthread:
 
             create, login, update: 钩子函数
         '''
-        self.name = name
-        self.active = True
+        self.name     = name
+        self.active   = True
         self.duration = duration
 
-        self.log = log
-        self.create = None
-        self.login = None
-        self.update = None
-        self.delete = None
-    
+        self.log      = log
+        self.create   = None
+        self.login    = None
+        self.update   = None
+        self.delete   = None
+
     def set_create(self, func):
         self.create = func
     def set_login(self, func):
@@ -52,7 +52,7 @@ class subthread:
         '''
 
         self.thread = Thread(target=self.main)
-        self.thread.start()  
+        self.thread.start()
 
     def main(self):
         '''
@@ -65,10 +65,9 @@ class subthread:
         if self.create is not None:
             self.create(self)
         try:
-            if self.login is not None:
-                if not self.login(self):
-                    raise Exception('登录失败！')
-            
+            if self.login and self.login(self):
+                raise Exception('登录失败！')
+
             # 首次运行更新一次
             self.time_accumulation = self.duration
             while self.active:
@@ -93,7 +92,7 @@ class subthread:
             if self.delete is not None:
                 self.delete(self)
             self.log.write(f'子线程 {self.name} 已停止运行！', 'I')
-    
+
     def restart(self):
         '''
             强制重启子线程
@@ -113,7 +112,7 @@ class subthread:
         '''
 
         self.active = False
-    
+
     def get_status(self, id)->str:
         '''
             以字符串形式返回进程状态
@@ -137,12 +136,12 @@ class breaker:
     ]
     thread_pool = []
 
-    wechat_update_duration = 30*60 # 微信公众号爬虫半小时更新一次
-    notice_update_duration = 30*60 # 通知网站爬虫半小时更新一次
-    ndwy_update_duration = 60*60 # 五育系统一小时更新一次
+    wechat_update_duration = 30 * 60 # 微信公众号爬虫半小时更新一次
+    notice_update_duration = 30 * 60 # 通知网站爬虫半小时更新一次
+    ndwy_update_duration   = 60 * 60 # 五育系统一小时更新一次
 
-    email_timely_duration = 30*60 # 即时发送邮件，半小时一次
-    email_ndwy_duration = 30*60 # 五育发送邮件，十二小时一次
+    email_timely_duration  = 30 * 60 # 即时发送邮件，半小时一次
+    email_ndwy_duration    = 30 * 60 # 五育发送邮件，十二小时一次
 
     def __init__(self):
         '''
@@ -178,7 +177,7 @@ class breaker:
         self.wechat_thread.run()
         self.thread_pool.append(self.wechat_thread)
 
-    def update_notice(self)->None:
+    def update_notice(sdfsdfasdself)->None:
         '''
             子线程，定时更新通知网站
         '''
@@ -210,12 +209,11 @@ class breaker:
             子线程，定时更新五育网站
         '''
 
-        self.ndwy_thread = subthread('五育系统更新',
-                                     self.ndwy_update_duration, self.log)
+        self.ndwy_thread = subthread('五育系统更新', self.ndwy_update_duration, self.log)
         def create(self):
             self.sub_object = ndwy_login(1)
         self.ndwy_thread.set_create(create)
-        
+
         def login(self):
             return self.sub_object.auto_login()
         self.ndwy_thread.set_login(login)
@@ -244,34 +242,34 @@ class breaker:
             users_obj = users()
             search_obj = search()
             server_obj = server()
-            
+
             # 群发通知信息
             timestamp = users_obj.db.last_update_time('website')
-            
+
             notice = search_obj.search_website(timestamp)
-            # 如果有消息可更新，则更新并赋值时间戳 
+            # 如果有消息可更新，则更新并赋值时间戳
             if notice['last'] > 0:
                 users_obj.db.set_update_time('website', notice['last']+1)
                 for item in notice['result']:
                     server_obj.send_notice(item, users_obj.users, '通知')
-            
+
             # 群发公众号消息
             timestamp = users_obj.db.last_update_time('wechat')
 
             notice = search_obj.search_wechat(timestamp)
-            # 如果有消息可更新，则更新并赋值时间戳 
+            # 如果有消息可更新，则更新并赋值时间戳
             if notice['last'] > 0:
                 users_obj.db.set_update_time('wechat', notice['last']+1)
                 for item in notice['result']:
                     server_obj.send_notice(item, users_obj.users, '推文')
-            
+
             del users_obj
             del search_obj
             del server_obj
         self.email_timely_thread.set_update(update)
         self.email_timely_thread.run()
         self.thread_pool.append(self.email_timely_thread)
-    
+
     def email_ndwy(self):
         '''
             发送五育邮件
@@ -279,13 +277,13 @@ class breaker:
 
         self.email_ndwy_thread = subthread('发送五育邮件',
                                            self.email_ndwy_duration, self.log)
-        
+
         def update(self):
             # 创建搜索和邮件发送对象
             users_obj = users()
             search_obj = search()
             server_obj = server()
-            
+
             # 个性化推送五育消息
             for user in users_obj.users:
                 wy = search_obj.search_ndwy(user)
@@ -293,7 +291,7 @@ class breaker:
                     server_obj.send_ndwy_list(user, wy)
                 else:
                     self.log.write(f'''{user['name']} 无匹配五育活动！''', 'I')
-            
+
             del users_obj
             del search_obj
             del server_obj
@@ -305,14 +303,14 @@ class breaker:
         '''
             运行爬虫，进行筛选，发送邮件
         '''
-        
+
         try:
             # 开启子线程
-            self.update_wechat()
-            self.update_notice()
+            # self.update_wechat()
+            # self.update_notice()
             self.update_ndwy()
-            self.email_timely()
-            self.email_ndwy()
+            # self.email_timely()
+            # self.email_ndwy()
 
             while True:
                 print('请输入需要进行的操作：')

@@ -14,11 +14,12 @@ import requests
 from Crypto.Cipher import AES
 
 class login:
-    session = None
 
-    # 记得换自己的用户名和密码
-    username = '231880291'
-    password = 'cbj117@THr'
+    def __init__(self, username='231880291', password='cbj117@THr'):
+        # 记得换自己的用户名和密码
+        self.username = username
+        self.password = password
+        self.session  = requests.Session()
 
     def encrypt_password(self, password_seed:str)->str:
         '''
@@ -32,16 +33,14 @@ class login:
         random_str = ''.join(random.sample((string.ascii_letters + string.digits) * 10, 64))
 
         data = random_str + self.password
-        key = password_seed.encode("utf-8")
-        iv = random_iv.encode("utf-8")
+        key  = password_seed.encode("utf-8")
+        iv   = random_iv.encode("utf-8")
+        bs   = AES.block_size
 
-        bs = AES.block_size
-
-        def pad(s):
-            return s + (bs - len(s) % bs) * chr(bs - len(s) % bs)
+        pad  = lambda s : s + (bs - len(s) % bs) * chr(bs - len(s) % bs)
 
         cipher = AES.new(key, AES.MODE_CBC, iv)
-        data = cipher.encrypt(pad(data).encode("utf-8"))
+        data   = cipher.encrypt(pad(data).encode("utf-8"))
         return base64.b64encode(data).decode("utf-8")
 
     def need_captcha(self):
@@ -56,7 +55,7 @@ class login:
     def get_captch(self, online:bool)->str:
         '''
             获取验证码的结果并返回
-        
+
             online: 是否调用在线付费 API 识别验证码
         '''
 
@@ -67,7 +66,7 @@ class login:
             if online:
                 captch_img = 'data:image/jpg;base64,{}'.format(
                     base64.b64encode(captch_img).decode('utf-8'))
-                
+
                 data = {
                     'image': captch_img,
                     'token': '-aiEOVLTyt9yoOmq6cLvYrKejQGimynQieo3IjO1k44',
@@ -96,16 +95,17 @@ class login:
                 return input('请输入验证码：')
         else:
             return ''
-        
+
     def login(self, online:bool)->None:
         '''
             统一身份认证登录，无返回值，会建立一个 session 会话，
             在外部通过 <login Object>.session.get/post() 可以顺利访问需要认证的页面
-        
+
             online: 是否调用在线付费 API 识别验证码
         '''
 
-        self.session = requests.Session()
+        self.session.auth    = None
+        self.session.cookies.clear()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36'})
 
@@ -115,21 +115,21 @@ class login:
         password_seed = re.search(r'pwdDefaultEncryptSalt = \"(.*?)\"', index_page).group(1)
 
         form = {
-            'username': self.username,
-            'password': self.encrypt_password(password_seed),
-            'captchaResponse': self.get_captch(online),
-            'lt': re.search(r'name="lt" value="(.*?)"', index_page).group(1),
-            'execution': re.search(r'name="execution" value="(.*?)"', index_page).group(1),
-            '_eventId': re.search(r'name="_eventId" value="(.*?)"', index_page).group(1),
-            'rmShown': re.search(r'name="rmShown" value="(.*?)"', index_page).group(1),
-            'dllt': 'userNamePasswordLogin',
+            'username' : self.username,
+            'password' : self.encrypt_password(password_seed),
+            'captchaResponse' : self.get_captch(online),
+            'lt' : re.search(r'name="lt" value="(.*?)"', index_page).group(1),
+            'execution' : re.search(r'name="execution" value="(.*?)"', index_page).group(1),
+            '_eventId' : re.search(r'name="_eventId" value="(.*?)"', index_page).group(1),
+            'rmShown' : re.search(r'name="rmShown" value="(.*?)"', index_page).group(1),
+            'dllt' : 'userNamePasswordLogin',
         }
-        
+
         login_url = 'https://authserver.nju.edu.cn/authserver/login'
         res = self.session.post(url=login_url, data=form, allow_redirects=False)
-        
+
         if res.status_code == 302:
-            # print('Login successfully!')
+            print('Login successfully!')
             pass
         else:
             raise Exception('Ndwy login error!')
@@ -137,4 +137,4 @@ class login:
 if __name__ == '__main__':
     a = login()
     a.login(0)
-    
+

@@ -11,7 +11,7 @@ class logger:
 
             name: 日志名，保存成的文件会在 ./log/<name>.log 下
                 通过 path 可以改变保存位置
-            
+
             默认在控制台输出所有级别的日志，
             在文件中只写入 INFO 及以上级别的日志
         '''
@@ -33,12 +33,12 @@ class logger:
         self.logger.addHandler(self.file)
 
         self.logger.setLevel(logging.INFO)
-    
+
     def __del__(self):
         '''
             析构函数，清空记录器绑定，避免重复输出
         '''
-        
+
         self.logger.handlers.clear()
 
     def write(self, content:str, type:str='D'):
@@ -49,8 +49,8 @@ class logger:
                 D: debug, I: info, W: warning, E: error
             content: 写入内容
         '''
-        
-        # print(time.strftime('%Y.%m.%d %H:%M:%S', time.localtime()), type, content)
+
+        print(type)
         if type == 'D':
             self.logger.debug(content)
         elif type == 'I':
@@ -59,6 +59,8 @@ class logger:
             self.logger.warning(content)
         elif type == 'E':
             self.logger.error(content)
+        else:
+            assert False, '存在没有考虑到的地方'
 
 if __name__ == '__main__':
     a = logger('log')

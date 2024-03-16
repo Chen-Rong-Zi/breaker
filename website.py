@@ -38,6 +38,7 @@ class website:
 
             url = f'{self.web}/ggtz/list{page_id}.psp'
             page = requests.get(url=url).content.decode('utf-8')
+            print(f'{page = }')
             tree = etree.HTML(page)
             lists = tree.xpath(r'//div[@id="wp_news_w6"]/ul/li')
 
